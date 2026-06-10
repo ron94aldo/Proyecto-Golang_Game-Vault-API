@@ -2,14 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"game-vault-api/models"
+	"game-vault-api/utils"
 	"io"
 	"net/http"
 	"net/url"
-	"game-vault-api/models"
-	"game-vault-api/utils"
 )
 
-const (
+var (
 	rawgBaseURL = "https://api.rawg.io/api"
 	rawgAPIKey  = "945d345a57cc4c3fb7b4f67211edd4c8"
 )
@@ -29,7 +29,7 @@ func SearchGames(w http.ResponseWriter, r *http.Request) {
 
 	// Call RAWG API
 	searchURL := rawgBaseURL + "/games?search=" + url.QueryEscape(query) + "&key=" + rawgAPIKey
-	
+
 	resp, err := http.Get(searchURL)
 	if err != nil {
 		utils.LogError("RAWG API call", err)
@@ -41,7 +41,7 @@ func SearchGames(w http.ResponseWriter, r *http.Request) {
 	// Check RAWG response status
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		utils.LogError("RAWG API error", nil)
+		utils.LogError("RAWG API error: "+string(body), nil)
 		utils.RespondWithError(w, http.StatusBadGateway, "rawg_error", "RAWG API returned an error")
 		return
 	}
@@ -60,37 +60,37 @@ func SearchGames(w http.ResponseWriter, r *http.Request) {
 // GetGameDetail handles GET /api/games/{rawg_id}
 func GetGameDetail(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		utils.RespondWithError(w, http.StatusMethodNotAllowed, "method_not_allowed", "Method not allowed")
+		utils.RespondWithError(w, http.StatusMethodNotAllowed, "405", "Method not allowed")
 		return
 	}
 
 	// Extract rawg_id from URL path
 	rawgID := r.PathValue("rawg_id")
 	if rawgID == "" {
-		utils.RespondWithError(w, http.StatusBadRequest, "missing_param", "Missing rawg_id parameter")
+		utils.RespondWithError(w, http.StatusBadRequest, "400", "Missing rawg_id parameter")
 		return
 	}
 
 	// Call RAWG API
 	gameURL := rawgBaseURL + "/games/" + rawgID + "?key=" + rawgAPIKey
-	
+
 	resp, err := http.Get(gameURL)
 	if err != nil {
 		utils.LogError("RAWG API call", err)
-		utils.RespondWithError(w, http.StatusBadGateway, "external_api_error", "Failed to connect to RAWG API")
+		utils.RespondWithError(w, http.StatusBadGateway, "500", "Failed to connect to RAWG API")
 		return
 	}
 	defer resp.Body.Close()
 
 	// Check RAWG response status
 	if resp.StatusCode == http.StatusNotFound {
-		utils.RespondWithError(w, http.StatusNotFound, "game_not_found", "Game not found in RAWG")
+		utils.RespondWithError(w, http.StatusNotFound, "404", "Game not found in RAWG")
 		return
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		utils.LogError("RAWG API error", nil)
-		utils.RespondWithError(w, http.StatusBadGateway, "rawg_error", "RAWG API returned an error")
+		utils.RespondWithError(w, http.StatusBadGateway, "502", "RAWG API disable")
 		return
 	}
 
@@ -98,7 +98,7 @@ func GetGameDetail(w http.ResponseWriter, r *http.Request) {
 	var game models.Game
 	if err := json.NewDecoder(resp.Body).Decode(&game); err != nil {
 		utils.LogError("JSON decode", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, "parse_error", "Failed to parse RAWG response")
+		utils.RespondWithError(w, http.StatusInternalServerError, "502", "Failed to parse RAWG response")
 		return
 	}
 

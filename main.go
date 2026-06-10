@@ -3,41 +3,28 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"game-vault-api/handlers"
+	"game-vault-api/repositories"
+	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"os"
-
-	_ "github.com/lib/pq"
-
-	"game-vault-api/handlers"
 )
+
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok && value != "" {
+		return value
+	}
+	return fallback
+}
 
 func main() {
 	// Database configuration
-	dbHost := os.Getenv("DB_HOST")
-	if dbHost == "" {
-		dbHost = "localhost"
-	}
-
-	dbPort := os.Getenv("DB_PORT")
-	if dbPort == "" {
-		dbPort = "5432"
-	}
-
-	dbUser := os.Getenv("DB_USER")
-	if dbUser == "" {
-		dbUser = "postgres"
-	}
-
-	dbPassword := os.Getenv("DB_PASSWORD")
-	if dbPassword == "" {
-		dbPassword = "postgres"
-	}
-
-	dbName := os.Getenv("DB_NAME")
-	if dbName == "" {
-		dbName = "game_vault"
-	}
+	dbHost := getEnv("DB_HOST", "localhost")
+	dbPort := getEnv("DB_PORT", "5432")
+	dbUser := getEnv("DB_USER", "postgres")
+	dbPassword := getEnv("DB_PASSWORD", "ronaldo")
+	dbName := getEnv("DB_NAME", "game_vault")
 
 	// Connect to database
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -83,6 +70,8 @@ func main() {
 
 	log.Println("Database table verified/created successfully")
 
+	store := &repositories.PostgresStore{DB: db}
+
 	// Setup routes
 	mux := http.NewServeMux()
 
@@ -91,13 +80,13 @@ func main() {
 	mux.HandleFunc("GET /api/games/{rawg_id}", handlers.GetGameDetail)
 
 	// Library endpoints
-	mux.HandleFunc("GET /api/library", handlers.ListLibrary(db))
-	mux.HandleFunc("POST /api/library", handlers.AddGameToLibrary(db))
-	mux.HandleFunc("PUT /api/library/{id}", handlers.UpdateGameInLibrary(db))
-	mux.HandleFunc("DELETE /api/library/{id}", handlers.DeleteGameFromLibrary(db))
+	mux.HandleFunc("GET /api/library", handlers.ListLibrary(store))
+	mux.HandleFunc("POST /api/library", handlers.AddGameToLibrary(store))
+	mux.HandleFunc("PUT /api/library/{id}", handlers.UpdateGameInLibrary(store))
+	mux.HandleFunc("DELETE /api/library/{id}", handlers.DeleteGameFromLibrary(store))
 
 	// Stats endpoint
-	mux.HandleFunc("GET /api/library/stats", handlers.GetLibraryStats(db))
+	mux.HandleFunc("GET /api/library/stats", handlers.GetLibraryStats(store))
 
 	// Start server
 	port := ":8080"

@@ -12,22 +12,16 @@ REST API built with Go, PostgreSQL, and the RAWG Video Games Database to manage 
 
 ## Tech Stack
 
-- **Language**: Go 1.21+
+- **Language**: Go 1.22+
 - **HTTP**: Native `net/http` package
 - **Database**: PostgreSQL
 - **External API**: RAWG Video Games Database
-
-## Project Structure
-
-game-vault-api/ ├── main.go # Server entry point ├── main_test.go # Unit tests ├── go.mod # Module definition ├── go.sum # Module checksums ├── db/ │ └── schema.sql # Database schema ├── models/ │ └── models.go # Data structures ├── handlers/ │ ├── search.go # Search handlers │ ├── library.go # Library CRUD handlers │ └── stats.go # Statistics handlers └── utils/ ├── validation.go # Validation functions └── errors.go # Error handling utilities
-
-Code
 
 ## Installation
 
 ### Prerequisites
 
-- Go 1.21 or higher
+- Go 1.22 or higher
 - PostgreSQL 12 or higher
 
 ### Setup
@@ -41,8 +35,8 @@ cd Proyecto-Golang_Game-Vault-API
 
 2. Set up PostgreSQL database:
 ```bash
-createdb game_vault
-psql game_vault < db/schema.sql
+createdb -h 127.0.0.1 -U postgres game_vault
+psql -h 127.0.0.1 -U postgres -d game_vault -f db/schema.sql
 ```
 
 3. Set environment variables (optional, defaults provided):
@@ -50,7 +44,7 @@ psql game_vault < db/schema.sql
 export DB_HOST=localhost
 export DB_PORT=5432
 export DB_USER=postgres
-export DB_PASSWORD=postgres
+export DB_PASSWORD=[You_Password]
 export DB_NAME=game_vault
 ```
 
@@ -70,61 +64,27 @@ The API will be available at http://localhost:8080
 
 Search Endpoints
 
-Search Games in RAWG
+Search Games in RAWG:
 
 ```bash
 GET /api/search?q=zelda
 ```
-Response:
 
-```bash
-{
-  "count": 12,
-  "results": [
-    {
-      "id": 3,
-      "name": "The Legend of Zelda: Breath of the Wild",
-      "background_image": "...",
-      "rating": 9.5,
-      "genres": [...],
-      "platforms": [...]
-    }
-  ]
-}
-```
-
-Get Game Details
+Get Game Details:
 
 ```bash
 GET /api/games/3
 ```
 Library Endpoints
-List Library
+
+List Library:
 
 ```bash
 GET /api/library
 GET /api/library?status=completado
 ```
-Response:
 
-```bash
-[
-  {
-    "id": 1,
-    "rawg_id": 3,
-    "title": "The Legend of Zelda: Breath of the Wild",
-    "genre": "Adventure",
-    "platform": "Nintendo Switch",
-    "cover_url": "...",
-    "personal_note": "Great game!",
-    "personal_score": 9,
-    "status": "completado",
-    "added_at": "2024-01-15T10:30:00Z"
-  }
-]
-```
-
-Add Game to Library
+Add Game to Library:
 
 ```bash
 POST /api/library
@@ -138,24 +98,8 @@ Content-Type: application/json
   "cover_url": "https://..."
 }
 ```
-Response (201 Created):
 
-```bash
-{
-  "id": 1,
-  "rawg_id": 3,
-  "title": "The Legend of Zelda: Breath of the Wild",
-  "genre": "Adventure",
-  "platform": "Nintendo Switch",
-  "cover_url": "...",
-  "personal_note": "",
-  "personal_score": 0,
-  "status": "pendiente",
-  "added_at": "2024-01-15T10:30:00Z"
-}
-```
-
-Update Game
+Update Game:
 
 ```bash
 PUT /api/library/1
@@ -168,36 +112,23 @@ Content-Type: application/json
 }
 ```
 
-Valid status values: pendiente, jugando, completado, abandonado Personal score: 1-10
+Valid status values: pendiente, jugando, completado, abandonado 
+Valid personal score: 1-10
 
-Delete Game
+Delete Game:
 
 ```bash
 DELETE /api/library/1
 Response: 204 No Content
 ```
 
-Get Statistics
+Get Statistics:
 
 ```bash
 GET /api/library/stats
 ```
-Response:
 
-```bash
-{
-  "total": 12,
-  "by_status": {
-    "completado": 5,
-    "jugando": 3,
-    "pendiente": 4,
-    "abandonado": 0
-  },
-  "average_score": 7.8
-}
-```
-
-Error Handling
+# Error Handling
 All error responses follow this format:
 
 ```bash
@@ -225,41 +156,28 @@ Run all tests:
 go test ./...
 ```
 
-Run with verbose output:
-
-```bash
-go test -v ./...
-```
-
 Run with coverage:
 
 ```bash
-go test -cover ./...
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
+go test -coverprofile coverage.out ./...
+go tool cover -html coverage.out
+go tool cover -func coverage.out
 ```
 
-Test Coverage
-The project includes comprehensive unit tests:
+# Environment Variables
 
-TestValidateStatus - Validates status field values
-TestValidatePersonalScore - Validates personal score range (1-10)
-TestValidateStatusEdgeCases - Edge cases for status validation
-TestValidatePersonalScoreBoundaries - Boundary conditions for scores
-TestGetValidStatuses - Helper function validation
-TestValidatePersonalScoreConsistency - Consistency checks
-TestValidateStatusConsistency - Consistency checks
-Target coverage: 80%+
+DB_HOST	localhost	(PostgreSQL host)
 
-Environment Variables
-Variable	Default	Description
-DB_HOST	localhost	PostgreSQL host
-DB_PORT	5432	PostgreSQL port
-DB_USER	postgres	Database user
-DB_PASSWORD	postgres	Database password
-DB_NAME	game_vault	Database name
+DB_PORT	5432	(PostgreSQL port)
 
-API Key
+DB_USER	postgres	(Database user)
+
+DB_PASSWORD	postgres	(Database password)
+
+DB_NAME	game_vault	(Database name)
+
+# API Key
+
 The RAWG API key used in this project is publicly provided for educational purposes:
 
 ```bash
@@ -268,12 +186,13 @@ Base URL: https://api.rawg.io/api
 Documentation: https://rawg.io/apidocs
 ```
 
-Author
+# Author
+
 Name: ron94aldo
 Repository: Proyecto-Golang_Game-Vault-API
 
-License
+# License
 This project is provided for educational purposes.
 
-Support
+# Support
 For issues or questions, please open an issue on the GitHub repository.

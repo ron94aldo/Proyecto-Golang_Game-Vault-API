@@ -1,9 +1,81 @@
-package main
+package utils
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"game-vault-api/models"
+	"log"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
-	"game-vault-api/utils"
 )
+
+func TestRespondWithError(t *testing.T) {
+	rr := httptest.NewRecorder()
+	RespondWithError(rr, http.StatusBadRequest, "400", "Bad Request")
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+	}
+
+	var response models.ErrorResponse
+	err := json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response.Code != "400" {
+		t.Errorf("Expected code '400', got %s", response.Code)
+	}
+	if response.Error != "Bad Request" {
+		t.Errorf("Expected error 'Bad Request', got %s", response.Error)
+	}
+}
+
+func TestRespondWithJSON(t *testing.T) {
+	rr := httptest.NewRecorder()
+	data := map[string]string{"message": "success"}
+
+	RespondWithJSON(rr, http.StatusOK, data)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+	}
+
+	var response map[string]string
+	err := json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["message"] != "success" {
+		t.Errorf("Expected message 'success', got %s", response["message"])
+	}
+}
+
+func TestLogError(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer log.SetOutput(os.Stderr) // Reset after test
+
+	err := errors.New("test error")
+	LogError("TestContext", err)
+
+	logOutput := buf.String()
+	if !strings.Contains(logOutput, "[ERROR] TestContext: test error") {
+		t.Errorf("Expected log output to contain '[ERROR] TestContext: test error', got %s", logOutput)
+	}
+
+	// Test with nil error (should not log)
+	buf.Reset()
+	LogError("TestContextNil", nil)
+	if buf.Len() > 0 {
+		t.Errorf("Expected no log output for nil error, got %s", buf.String())
+	}
+}
 
 // TestValidateStatus tests the ValidateStatus function
 func TestValidateStatus(t *testing.T) {
@@ -29,7 +101,7 @@ func TestValidateStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := utils.ValidateStatus(tt.status)
+			result := ValidateStatus(tt.status)
 			if result != tt.expected {
 				t.Errorf("ValidateStatus(%q) = %v, want %v", tt.status, result, tt.expected)
 			}
@@ -64,7 +136,7 @@ func TestValidatePersonalScore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := utils.ValidatePersonalScore(tt.score)
+			result := ValidatePersonalScore(tt.score)
 			if result != tt.expected {
 				t.Errorf("ValidatePersonalScore(%d) = %v, want %v", tt.score, result, tt.expected)
 			}
@@ -91,7 +163,7 @@ func TestValidateStatusEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := utils.ValidateStatus(tt.status)
+			result := ValidateStatus(tt.status)
 			if result != tt.expected {
 				t.Errorf("ValidateStatus(%q) = %v, want %v", tt.status, result, tt.expected)
 			}
@@ -116,7 +188,7 @@ func TestValidatePersonalScoreBoundaries(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := utils.ValidatePersonalScore(tt.score)
+			result := ValidatePersonalScore(tt.score)
 			if result != tt.expected {
 				t.Errorf("ValidatePersonalScore(%d) = %v, want %v", tt.score, result, tt.expected)
 			}
@@ -126,7 +198,7 @@ func TestValidatePersonalScoreBoundaries(t *testing.T) {
 
 // TestGetValidStatuses tests the GetValidStatuses helper function
 func TestGetValidStatuses(t *testing.T) {
-	statuses := utils.GetValidStatuses()
+	statuses := GetValidStatuses()
 
 	expectedCount := 4
 	if len(statuses) != expectedCount {
@@ -151,8 +223,8 @@ func TestGetValidStatuses(t *testing.T) {
 func TestValidatePersonalScoreConsistency(t *testing.T) {
 	// Test multiple calls return same result
 	score := 7
-	result1 := utils.ValidatePersonalScore(score)
-	result2 := utils.ValidatePersonalScore(score)
+	result1 := ValidatePersonalScore(score)
+	result2 := ValidatePersonalScore(score)
 
 	if result1 != result2 {
 		t.Errorf("ValidatePersonalScore(%d) returned inconsistent results: %v and %v", score, result1, result2)
@@ -163,8 +235,8 @@ func TestValidatePersonalScoreConsistency(t *testing.T) {
 func TestValidateStatusConsistency(t *testing.T) {
 	// Test multiple calls return same result
 	status := "completado"
-	result1 := utils.ValidateStatus(status)
-	result2 := utils.ValidateStatus(status)
+	result1 := ValidateStatus(status)
+	result2 := ValidateStatus(status)
 
 	if result1 != result2 {
 		t.Errorf("ValidateStatus(%q) returned inconsistent results: %v and %v", status, result1, result2)
